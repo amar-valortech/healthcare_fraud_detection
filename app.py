@@ -11,10 +11,10 @@ class FraudDetectionApp:
         # Assuming the model has an attribute 'feature_names_in_' which stores the feature names used during training
         self.feature_names = self.model.feature_names_in_ if hasattr(self.model, 'feature_names_in_') else [
             'incident_severity', 'insured_hobbies', 'total_claim_amount', 'months_as_customer', 'policy_annual_premium', 
-            'incident_date', 'capital-loss', 'capital-gains', 'insured_education_level', 'incident_city'
+            'incident_date', 'capital-loss', 'capital-gains', 'insured_education_level', 'incident_city', 'incident_state'
         ]
         
-        self.categorical_columns = ['incident_severity', 'insured_hobbies', 'insured_education_level', 'incident_city']
+        self.categorical_columns = ['incident_severity', 'insured_hobbies', 'insured_education_level', 'incident_city', 'incident_state']
         self.encoders = {col: LabelEncoder() for col in self.categorical_columns}
         self.fit_encoders()
 
@@ -24,20 +24,37 @@ class FraudDetectionApp:
             'incident_severity': ['Minor Damage', 'Major Damage', 'Total Loss', 'Trivial Damage'],
             'insured_hobbies': ['sleeping', 'reading', 'board-games', 'bungie-jumping', 'base-jumping', 'golf', 'camping', 'dancing', 'skydiving', 'movies', 'hiking', 'yachting', 'paintball', 'chess', 'kayaking', 'polo', 'basketball', 'video-games', 'cross-fit', 'exercise'],
             'insured_education_level': ['MD', 'PhD', 'Associate', 'Masters', 'High School', 'College', 'JD'],
-            'incident_city': ['Columbus', 'Riverwood', 'Arlington', 'Springfield', 'Hillsdale', 'Northbend', 'Northbrook']
+            'incident_city': ['Columbus', 'Riverwood', 'Arlington', 'Springfield', 'Hillsdale', 'Northbend', 'Northbrook'],
+            'incident_state': ['OH', 'GA', 'TX', 'IL', 'NJ', 'WA']
         }
         for col in self.categorical_columns:
             self.encoders[col].fit(example_data[col])
 
+    # def preprocess_single_data(self, data):
+    #     if not isinstance(data, pd.DataFrame):
+    #         data = pd.DataFrame(data, index=[0])
+    #     for col in self.categorical_columns:
+    #         if col in data.columns:
+    #             data[col] = self.encoders[col].transform(data[col])
+    #     # Ensure the column order matches the training data
+    #     data = data[self.feature_names]
+    #     return data
+
+    # 
+    
     def preprocess_single_data(self, data):
         if not isinstance(data, pd.DataFrame):
             data = pd.DataFrame(data, index=[0])
+        
         for col in self.categorical_columns:
             if col in data.columns:
-                data[col] = self.encoders[col].transform(data[col])
+                # Transform known labels and handle unseen labels
+                data[col] = [self.encoders[col].transform([x])[0] if x in self.encoders[col].classes_ else -1 for x in data[col]]
+        
         # Ensure the column order matches the training data
         data = data[self.feature_names]
         return data
+
 
     def predict_single_fraud(self, data):
         data_processed = self.preprocess_single_data(data)
@@ -58,6 +75,12 @@ class FraudDetectionApp:
         capital_gains = st.number_input('Capital Gains')
         insured_education_level = st.selectbox('Insured Education Level', ['MD', 'PhD', 'Associate', 'Masters', 'High School', 'College', 'JD'])
         incident_city = st.selectbox('Incident City', ['Columbus', 'Riverwood', 'Arlington', 'Springfield', 'Hillsdale', 'Northbend', 'Northbrook'])
+        incident_state = st.selectbox('Incident State', [
+            'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 
+            'KY', 'LA', 'ME', 'MD', 'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 
+            'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 
+            'WI', 'WY'
+        ])
 
         # Collecting user input
         new_data_point = {
@@ -71,6 +94,7 @@ class FraudDetectionApp:
             'capital-gains': capital_gains,
             'insured_education_level': insured_education_level,
             'incident_city': incident_city,
+            'incident_state': incident_state,
         }
 
         # Prediction button
@@ -101,7 +125,8 @@ class FraudDetectionApp:
             'capital-loss': [1000 if fraud else 0],
             'capital-gains': [5000 if fraud else 0],
             'insured_education_level': ['PhD' if fraud else 'College'],
-            'incident_city': ['Riverwood' if fraud else 'Northbrook']
+            'incident_city': ['Riverwood' if fraud else 'Northbrook'],
+            'incident_state': ['GA' if fraud else 'IL'],
         }
         return pd.DataFrame(sample_data)
 
