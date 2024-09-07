@@ -101,9 +101,9 @@ class FraudDetectionApp:
         if st.button('Predict'):
             prediction = self.predict_single_fraud(new_data_point)
             if prediction == 0:
-                st.write('The applied application is not fraud.')
+                st.write('This case is not fraudulent.')
             else:
-                st.write('The applied application is fraud.')
+                st.write('This case is fraudulent.')
 
         # Generate sample data
         if st.button('Generate Sample Data'):
